@@ -120,7 +120,7 @@ def generate_probabilistic_embeddings(data, frequency_data, metadata, verbose=Fa
     num_labels = metadata['num_labels']
 
     utterances = data['utterances']
-    labels = data['labels']
+    labels = data.get('labels', [])
 
     tmp_label_embeddings = []
 
@@ -130,13 +130,17 @@ def generate_probabilistic_embeddings(data, frequency_data, metadata, verbose=Fa
 
         for j in range(len(utterances[i])):
             word = utterances[i][j]
-            if word in freq_words:
+            if word in freq_words and j < max_utterance_len:
                 utterance_embeddings[i][j] = probability_matrix[word_to_index[word]]
 
-        tmp_label_embeddings.append(label_to_index[labels[i]])
+        if labels:
+            tmp_label_embeddings.append(label_to_index[labels[i]])
 
     # Convert labels to one hot vectors
-    label_embeddings = to_categorical(np.asarray(tmp_label_embeddings), num_classes=num_labels)
+    if tmp_label_embeddings:
+        label_embeddings = to_categorical(np.asarray(tmp_label_embeddings), num_classes=num_labels)
+    else:
+        label_embeddings = []
 
     if verbose:
         print("------------------------------------")
@@ -146,71 +150,72 @@ def generate_probabilistic_embeddings(data, frequency_data, metadata, verbose=Fa
     return utterance_embeddings, label_embeddings
 
 
-def batch_prediction(model, data, data_x, data_y, metadata, batch_size, verbose=False):
+def batch_prediction(model, data, data_x, data_y=None, metadata=None, batch_size=100, verbose=False):
     # Predictions results
     correct = 0
     incorrect = 0
     correct_labels = {}
     incorrect_labels = {}
-    index_to_label = metadata["index_to_label"]
-    for i in range(len(index_to_label)):
-        correct_labels[index_to_label[i]] = 0
-        incorrect_labels[index_to_label[i]] = 0
-
     # Get utterance and label data
     utterances = data['utterances']
-    labels = data['labels']
+    if metadata is not None and data_y is not None:
+        index_to_label = metadata["index_to_label"]
+        for i in range(len(index_to_label)):
+            correct_labels[index_to_label[i]] = 0
+            incorrect_labels[index_to_label[i]] = 0
+        labels = data['labels']
 
     # Get predictions
     predictions = model.predict(data_x, batch_size=batch_size, verbose=verbose)
     num_predictions = len(predictions)
 
-    for i in range(num_predictions):
+    if metadata is not None and data_y is not None:
+        for i in range(num_predictions):
 
-        # Prediction result
-        prediction_result = False
+            # Prediction result
+            prediction_result = False
 
-        # Get prediction with highest probability
-        prediction = index_to_label[np.argmax(predictions[i])]
+            # Get prediction with highest probability
+            prediction = index_to_label[np.argmax(predictions[i])]
 
-        # Determine if correct and increase counts
-        if prediction == labels[i]:
-            prediction_result = True
+            # Determine if correct and increase counts
+            if prediction == labels[i]:
+                prediction_result = True
 
-        if prediction_result:
-            correct += 1
-            correct_labels[labels[i]] += 1
-        else:
-            incorrect += 1
-            incorrect_labels[labels[i]] += 1
+            if prediction_result:
+                correct += 1
+                correct_labels[labels[i]] += 1
+            else:
+                incorrect += 1
+                incorrect_labels[labels[i]] += 1
 
-        if verbose:
-            print("------------------------------------")
-            print("Making prediction for utterance: ", utterances[i], "with label: ", labels[i])
-            print("Utterance embedding: ", data_x[i])
-            label_index = 0
-            for j in range(len(data_y[i])):
-                if data_y[i][j] > 0:
-                    label_index = i
-            print("Label embedding: ", label_index)
-            print("Raw predictions: ", predictions)
-            print("Actual label: ", labels[i])
-            print("Predicted label: ", prediction)
-            print("Prediction is: ", prediction_result)
+            if verbose:
+                print("------------------------------------")
+                print("Making prediction for utterance: ", utterances[i], "with label: ", labels[i])
+                print("Utterance embedding: ", data_x[i])
+                label_index = 0
+                for j in range(len(data_y[i])):
+                    if data_y[i][j] > 0:
+                        label_index = i
+                print("Label embedding: ", label_index)
+                print("Raw predictions: ", predictions)
+                print("Actual label: ", labels[i])
+                print("Predicted label: ", prediction)
+                print("Prediction is: ", prediction_result)
 
-            print("------------------------------------")
-            print("Prediction ratios:")
-            for k in range(len(index_to_label)):
-                print('{:10}'.format(index_to_label[k]), " ", '{:10}'.format(correct_labels[index_to_label[k]]), " ",
-                      '{:10}'.format(incorrect_labels[index_to_label[k]]))
+                print("------------------------------------")
+                print("Prediction ratios:")
+                for k in range(len(index_to_label)):
+                    print('{:10}'.format(index_to_label[k]), " ", '{:10}'.format(correct_labels[index_to_label[k]]), " ",
+                        '{:10}'.format(incorrect_labels[index_to_label[k]]))
 
-    percent_correct = (100 / num_predictions) * correct
-    percent_incorrect = (100 / num_predictions) * incorrect
+        percent_correct = (100 / num_predictions) * correct
+        percent_incorrect = (100 / num_predictions) * incorrect
 
-    print("------------------------------------")
-    print("Made ", num_predictions, " predictions")
-    print("Correct: ", correct, " ", percent_correct, "%")
-    print("Incorrect: ", incorrect, " ", percent_incorrect, "%")
+        print("------------------------------------")
+        print("Made ", num_predictions, " predictions")
+        print("Correct: ", correct, " ", percent_correct, "%")
+        print("Incorrect: ", incorrect, " ", percent_incorrect, "%")
 
     return predictions
 
@@ -412,7 +417,7 @@ def save_data(path, data, verbose=True):
         print("Saved data to file %s." % path)
 
 
-def load_data(path, verbose=True):
+def load_data(path, verbose=False):
     with open(path, 'rb') as file:
         saved_data = pickle.load(file)
         file.close()

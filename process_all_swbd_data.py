@@ -8,7 +8,7 @@ batch_name = 'all'
 resource_dir = 'data/'
 embeddings_dir = "embeddings/"
 text_file_path = resource_dir + "all_text.txt"
-corpus = CorpusReader('switchboard_data/')
+#corpus = CorpusReader('switchboard_data/')
 
 # Excluded dialogue act tags
 excluded_tags = ['x', '+']
@@ -17,7 +17,7 @@ excluded_tags = ['x', '+']
 embedding_dimension = 300
 
 # Process switchboard csv's
-process_batch_to_txt_file(corpus, resource_dir, batch_name, excluded_tags=excluded_tags)
+#process_batch_to_txt_file(corpus, resource_dir, batch_name, excluded_tags=excluded_tags)
 
 print("Processing file: ", text_file_path)
 text_data = read_file(text_file_path)
@@ -79,6 +79,7 @@ labels = sorted(labels.items(), key=itemgetter(1), reverse=True)
 # Count number of labels
 num_labels = len(labels)
 
+print(num_labels)
 # Create index-to-label and label-to-index
 index_to_label = dict()
 label_to_index = dict()
