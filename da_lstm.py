@@ -8,23 +8,19 @@ from utilities import *
 from keras import Sequential
 from keras.layers import LSTM, TimeDistributed, Dense, GlobalMaxPooling1D, Embedding
 from keras.optimizers import RMSprop
-import sys
 
 resource_dir = 'data/'
 embeddings_dir = "embeddings/"
 embedding_filename = 'word2vec_GoogleNews'
-embedding_filename = "probabilistic_freq_2.pkl"
 model_dir = 'models/'
 model_name = "Embeddings Model"
-
-# Get some params
-mode = sys.argv[1]
 
 # Load metadata
 metadata = load_data(resource_dir + "metadata.pkl")
 embeddings_dimension = 300
 embeddings = load_data(embeddings_dir + embedding_filename + '_' + str(embeddings_dimension) + 'dim.pkl')
 
+# Load Training and test sets
 train_data = load_data(resource_dir + 'train_data.pkl')
 train_x, train_y = generate_embeddings(train_data, metadata)
 
@@ -71,62 +67,55 @@ optimizer = RMSprop(lr=learning_rate, decay=0.001)
 model.compile(loss='categorical_crossentropy', optimizer=optimizer, metrics=['accuracy'])
 print(model.summary())
 
-if mode == 'train': 
-    # Train the model
-    print("------------------------------------")
-    print("Training model...")
+# Train the model
+print("------------------------------------")
+print("Training model...")
 
-    start_time = time.time()
-    print("Training started: " + datetime.datetime.now().strftime("%b %d %T") + " for", num_epoch, "epochs")
+start_time = time.time()
+print("Training started: " + datetime.datetime.now().strftime("%b %d %T") + " for", num_epoch, "epochs")
 
-    history = model.fit(train_x, train_y, epochs=num_epoch, batch_size=batch_size, validation_data=(test_x, test_y), verbose=2)
+history = model.fit(train_x, train_y, epochs=num_epoch, batch_size=batch_size, validation_data=(test_x, test_y), verbose=2)
 
-    # Save model and history
-    model.save(model_dir + model_name + '.hdf5', overwrite=True)
-    save_data(model_dir + model_name + ' History.pkl', history.history)
+# Save model and history
+model.save(model_dir + model_name + '.hdf5', overwrite=True)
+save_data(model_dir + model_name + ' History.pkl', history.history)
 
-    end_time = time.time()
-    print("Training took " + str(('%.3f' % (end_time - start_time))) + " seconds for", num_epoch, "epochs")
+end_time = time.time()
+print("Training took " + str(('%.3f' % (end_time - start_time))) + " seconds for", num_epoch, "epochs")
 
-    # Plot training accuracy  and loss
-    fig = plot_history(history.history, model_name)
-    fig.show()
-    fig.savefig(model_dir + model_name + ' Accuracy and Loss.png')
+# Plot training accuracy  and loss
+fig = plot_history(history.history, model_name)
+fig.show()
+fig.savefig(model_dir + model_name + ' Accuracy and Loss.png')
 
-elif mode == 'predict':
-    # Evaluate the model
-    print("------------------------------------")
-    print("Evaluating model...")
-    model = load_model(model_dir + model_name + '.hdf5')
+# Evaluate the model
+print("------------------------------------")
+print("Evaluating model...")
+model = load_model(model_dir + model_name + '.hdf5')
 
-    # Test set
-    test_scores = model.evaluate(test_x, test_y, batch_size=batch_size, verbose=2)
-    print("Test data: ")
-    print("Loss: ", test_scores[0], " Accuracy: ", test_scores[1])
+# Test set
+test_scores = model.evaluate(test_x, test_y, batch_size=batch_size, verbose=2)
+print("Test data: ")
+print("Loss: ", test_scores[0], " Accuracy: ", test_scores[1])
 
-    # Validation set
-    val_scores = model.evaluate(val_x, val_y, batch_size=batch_size, verbose=2)
-    print("Validation data: ")
-    print("Loss: ", val_scores[0], " Accuracy: ", val_scores[1])
+# Validation set
+val_scores = model.evaluate(val_x, val_y, batch_size=batch_size, verbose=2)
+print("Validation data: ")
+print("Loss: ", val_scores[0], " Accuracy: ", val_scores[1])
 
-    test_predictions = batch_prediction(model, test_data, test_x, test_y, metadata, batch_size, verbose=False)
-    val_predictions = batch_prediction(model, val_data, val_x, val_y, metadata, batch_size, verbose=False)
+test_predictions = batch_prediction(model, test_data, test_x, test_y, metadata, batch_size, verbose=False)
+val_predictions = batch_prediction(model, val_data, val_x, val_y, metadata, batch_size, verbose=False)
 
-    print(test_data, test_predictions)
-    
-    # Generate confusion matrix
-    test_matrix = generate_confusion_matrix(test_data, test_predictions, metadata, verbose=False)
-    val_matrix = generate_confusion_matrix(val_data, val_predictions, metadata, verbose=False)
+# Generate confusion matrix
+test_matrix = generate_confusion_matrix(test_data, test_predictions, metadata, verbose=False)
+val_matrix = generate_confusion_matrix(val_data, val_predictions, metadata, verbose=False)
 
-    # Plot confusion matrices
+# Plot confusion matrices
 
-    # class_names = ['non-opinion', 'backchannel', 'opinion', 'abandoned', 'agree']
-    # fig = plot_confusion_matrix(test_matrix, class_names, title='Test', matrix_size=5, normalize=True)
+# class_names = ['non-opinion', 'backchannel', 'opinion', 'abandoned', 'agree']
+# fig = plot_confusion_matrix(test_matrix, class_names, title='Test', matrix_size=5, normalize=True)
 
-    class_names = [class_name[0] for class_name in metadata['labels']]
-    fig = plot_confusion_matrices(test_matrix, val_matrix, class_names, title_a='Test', title_b='Validation', matrix_size=5, normalize=True)
-    fig.show()
-    fig.savefig(model_dir + model_name + ' Confusion Matrix.png', transparent=True)
-
-    
-
+class_names = [class_name[0] for class_name in metadata['labels']]
+fig = plot_confusion_matrices(test_matrix, val_matrix, class_names, title_a='Test', title_b='Validation', matrix_size=5, normalize=True)
+fig.show()
+fig.savefig(model_dir + model_name + ' Confusion Matrix.png', transparent=True)

@@ -3,12 +3,11 @@ from utilities import *
 
 resource_dir = 'data/'
 embeddings_dir = "embeddings/"
-embedding_filename = 'probabilistic_freq_2.pkl'
+embedding_filename = 'word2vec_swda_300dim.txt'
 embeddings_path = embeddings_dir + embedding_filename
 
 # Load metadata
 metadata = load_data(resource_dir + "metadata.pkl")
-print(metadata.keys())
 word_to_index = metadata['word_to_index']
 
 # Dimension of final embedding file
@@ -26,7 +25,7 @@ if wordvec_type == 'word2vec':
     word2vec = KeyedVectors.load_word2vec_format(embeddings_path, binary=True)
 
 else:
-    with open(embeddings_path, encoding="utf-8") as file:
+    with open(embeddings_path, encoding="utf8") as file:
         for line in file:
             values = line.rstrip().rsplit(' ')
             word = values[0]

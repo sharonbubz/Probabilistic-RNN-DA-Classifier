@@ -38,7 +38,6 @@ hidden_layer = 128
 learning_rate = 0.001
 num_epoch = 10
 model_name = model_name + " -" + \
-             " Specific " + \
              " Epochs=" + str(num_epoch) + \
              " Hidden Layers=" + str(hidden_layer)
 
@@ -55,8 +54,6 @@ print("Epochs: ", num_epoch)
 # Build the model
 print("------------------------------------")
 print('Build model...')
-print(hidden_layer, max_utterance_len, num_labels)
-
 model = Sequential()
 model.add(LSTM(hidden_layer, input_shape=(max_utterance_len, num_labels), return_sequences=True, kernel_initializer='random_uniform', recurrent_initializer='glorot_uniform'))
 model.add(TimeDistributed(Dense(hidden_layer, input_shape=(max_utterance_len, hidden_layer))))
@@ -88,7 +85,6 @@ fig = plot_history(history.history, model_name)
 fig.show()
 fig.savefig(model_dir + model_name + ' Accuracy and Loss.png')
 
-
 # Evaluate the model
 print("------------------------------------")
 print("Evaluating model...")
@@ -110,15 +106,12 @@ val_predictions = batch_prediction(model, val_data, val_x, val_y, metadata, batc
 # Generate confusion matrix
 test_matrix = generate_confusion_matrix(test_data, test_predictions, metadata, verbose=False)
 val_matrix = generate_confusion_matrix(val_data, val_predictions, metadata, verbose=False)
-class_names = [class_name[0] for class_name in metadata['labels']]
-print(class_names)
-print(test_matrix)
-print(val_matrix)
+
 # Plot confusion matrices
 # class_names = ['non-opinion', 'backchannel', 'opinion', 'abandoned', 'agree']
 # fig = plot_confusion_matrix(test_matrix, class_names, title='Test', matrix_size=5, normalize=True)
 
-
+class_names = [class_name[0] for class_name in metadata['labels']]
 fig = plot_confusion_matrices(test_matrix, val_matrix, class_names, title_a='Test', title_b='Validation', matrix_size=5, normalize=True)
 fig.show()
 fig.savefig(model_dir + model_name + ' Confusion Matrix.png', transparent=True)
